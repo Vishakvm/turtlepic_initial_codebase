@@ -1,0 +1,46 @@
+stages:
+  - build
+  - deploy
+
+Build App:
+  stage: build
+  tags:
+    - tp-runner
+  script:
+    - echo "Building App"
+    - yarn install
+    - yarn build
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+
+Test Deployment:
+  stage: deploy
+  tags:
+    - tp-runner
+  script:
+    - echo "Deploying App"
+    - cp ~/environments/.env.$TEST_URL .env
+    - cp ~/scripts/frontend/deploy.sh deploy.sh
+    - ./deploy.sh $TEST_BUCKET_NAME $TEST_CF_DISTRIBUTION_ID
+  rules:
+    - if: $TEST_URL && $TEST_BUCKET_NAME && $TEST_CF_DISTRIBUTION_ID && $CI_COMMIT_BRANCH == 'main'
+  when: manual
+  environment:
+    name: Test
+    url: 'https://$TEST_URL'
+
+Prod Deployment:
+  stage: deploy
+  tags:
+    - tp-runner
+  script:
+    - echo "Deploying App"
+    - cp ~/environments/.env.$PROD_URL .env
+    - cp ~/scripts/frontend/deploy.sh deploy.sh
+    - ./deploy.sh $PROD_BUCKET_NAME $PROD_CF_DISTRIBUTION_ID
+  rules:
+    - if: $PROD_URL && $PROD_BUCKET_NAME && $PROD_CF_DISTRIBUTION_ID && $CI_COMMIT_BRANCH == 'main'
+  when: manual
+  environment:
+    name: Production
+    url: 'https://$PROD_URL'
